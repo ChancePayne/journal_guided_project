@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.net.URL;
 
@@ -37,7 +38,6 @@ public class JournalDetails extends AppCompatActivity {
         setContentView(R.layout.activity_journal_details);
 
         entry = (JournalEntry) getIntent().getSerializableExtra(JournalEntry.TAG);
-        uri = getIntent().getStringExtra("uri");
 
         if(entry == null) {
             entry = new JournalEntry(JournalEntry.INVALID_ID);
@@ -51,14 +51,11 @@ public class JournalDetails extends AppCompatActivity {
         journalDayRating = findViewById(R.id.journal_day_rating);
 
         if(entry != null){
-            journalDate.setText(entry.getDate());
+            journalDate.setText(String.format("Date: %s", entry.getDate()));
             journalEntry.setText(entry.getEntryText());
             journalDayRating.setProgress(entry.getRating());
-            //final Uri imageUri = entry.getImageUri();
-            /*if(uri != null) {
-                journalImage.setVisibility(View.VISIBLE);
-                journalImage.setImageURI(Uri.parse(uri));
-            }*/
+            journalImage.setImageURI(entry.getImageUri());
+            journalImage.setVisibility(View.VISIBLE);
         }
 
         addImageButton.setOnClickListener(new View.OnClickListener() {
@@ -80,21 +77,26 @@ public class JournalDetails extends AppCompatActivity {
             }
         });
 
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        String type = intent.getType();
-
-        if (Intent.ACTION_SEND.equals(action) && type != null) {
-            if (type.startsWith("image/")) {
-                entry = new JournalEntry(JournalListActivity.nextId++);
-                Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                entry.setImageUri(uri);
-                journalImage.setVisibility(View.VISIBLE);
-                journalImage.setImageURI(uri);
+        journalDayRating.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Day Rating: " + progress,
+                        Toast.LENGTH_LONG
+                ).show();
             }
-        } else {
-            entry = (JournalEntry) intent.getSerializableExtra(JournalEntry.TAG);
-        }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
     }
 

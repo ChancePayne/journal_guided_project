@@ -2,6 +2,8 @@ package com.joshuahalvorson.journal;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -55,6 +57,21 @@ public class JournalListActivity extends AppCompatActivity {
                 startActivityForResult(intent, NEW_ENTRY_REQUEST);
             }
         });
+
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+            if (type.startsWith("image/")) {
+                JournalEntry entry = createJournalEntry();
+                Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                entry.setImageUri(uri);
+                Intent sharePictureIntent = new Intent(context, JournalDetails.class);
+                sharePictureIntent.putExtra(JournalEntry.TAG, entry);
+                startActivityForResult(sharePictureIntent, NEW_ENTRY_REQUEST);
+            }
+        }
     }
 
     @Override
@@ -93,15 +110,13 @@ public class JournalListActivity extends AppCompatActivity {
 
     private TextView generateTextView(final JournalEntry entry){
         TextView textView = new TextView(context);
-        textView.setTextSize(20);
-        textView.setText(entry.getDate() + " " + entry.getRating());
+        textView.setTextSize(25);
+        textView.setTextColor(Color.BLACK);
+        textView.setText(String.format("Date: %s Rating: %s", entry.getDate(), entry.getRating()));
         textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent detailIntent = new Intent(context, JournalDetails.class);
-                if(entry.getImageUri() != null){
-                    detailIntent.putExtra("uri", entry.getImageUri().toString());
-                }
                 detailIntent.putExtra(JournalEntry.TAG, entry);
                 startActivityForResult(detailIntent, EDIT_ENTRY_REQUEST_CODE);
             }
@@ -124,10 +139,9 @@ public class JournalListActivity extends AppCompatActivity {
         }
     }
 
-
     private JournalEntry createJournalEntry() {
-        JournalEntry entry = new JournalEntry(nextId++);
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        JournalEntry entry = new JournalEntry(journalEntries.size());
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
         Date date = new Date();
         entry.setDate(dateFormat.format(date));
         return entry;
