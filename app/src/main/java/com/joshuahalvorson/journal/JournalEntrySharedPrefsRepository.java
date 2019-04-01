@@ -76,6 +76,19 @@ public class JournalEntrySharedPrefsRepository {
         editor.apply();
     }
 
+    public void deleteEntry(JournalEntry entry){
+        ArrayList<String> ids = getListOfIds();
+        ids.remove(entry.getId());
+        SharedPreferences.Editor editor = preferences.edit();
+        StringBuilder newIdList = new StringBuilder();
+        for(String id : ids){
+            newIdList.append(id).append(",");
+        }
+        editor.putString(ID_LIST_KEY, newIdList.toString());
+        editor.remove(ENTRY_ITEM_KEY_PREFIX + entry.getId());
+        editor.apply();
+    }
+
     private ArrayList<String> getListOfIds(){
         String idList = preferences.getString(ID_LIST_KEY, "");
         String[] oldList = idList.split(",");

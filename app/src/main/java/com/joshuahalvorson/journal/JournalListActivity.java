@@ -50,6 +50,8 @@ public class JournalListActivity extends AppCompatActivity {
         journalEntries = repository.readAllEntries();
         //addTestEntries();
 
+
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,6 +83,7 @@ public class JournalListActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Log.i(getLocalClassName(), "onResume");
+
         entryList.removeAllViews();
         for(JournalEntry journalEntry : journalEntries){
             entryList.addView(generateTextView(journalEntry));

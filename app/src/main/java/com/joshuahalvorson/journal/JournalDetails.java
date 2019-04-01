@@ -107,7 +107,6 @@ public class JournalDetails extends AppCompatActivity {
 
             }
         });
-
     }
 
     @Override
