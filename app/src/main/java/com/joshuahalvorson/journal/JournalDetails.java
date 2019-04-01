@@ -17,6 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class JournalDetails extends AppCompatActivity {
 
@@ -51,7 +54,14 @@ public class JournalDetails extends AppCompatActivity {
         journalDayRating = findViewById(R.id.journal_day_rating);
 
         if(entry != null){
-            journalDate.setText(String.format("Date: %s", entry.getDate()));
+            if(!entry.getDate().equals("")){
+                journalDate.setText(String.format("Date: %s", entry.getDate()));
+            }else{
+                DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+                Date date = new Date();
+                entry.setDate(dateFormat.format(date));
+                journalDate.setText(String.format("Date: %s", entry.getDate()));
+            }
             journalEntry.setText(entry.getEntryText());
             journalDayRating.setProgress(entry.getRating());
             journalImage.setImageURI(entry.getImageUri());
