@@ -32,6 +32,8 @@ public class JournalListActivity extends AppCompatActivity {
 
     private Context context;
 
+    JournalEntrySharedPrefsRepository repository;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,11 +43,12 @@ public class JournalListActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         context = this;
+        repository = new JournalEntrySharedPrefsRepository(context);
 
         entryList = findViewById(R.id.entry_list);
 
-        journalEntries = new ArrayList<>();
-        addTestEntries();
+        journalEntries = repository.readAllEntries();
+        //addTestEntries();
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -130,20 +133,22 @@ public class JournalListActivity extends AppCompatActivity {
             if(data != null){
                 JournalEntry entry = (JournalEntry) data.getSerializableExtra(JournalEntry.TAG);
                 journalEntries.set(entry.getId(), entry);
+                repository.updateEntry(entry);
             }
         }else if(requestCode == NEW_ENTRY_REQUEST && resultCode == RESULT_OK) {
             if (data != null) {
                 JournalEntry entry = (JournalEntry) data.getSerializableExtra(JournalEntry.TAG);
                 journalEntries.add(entry);
+                repository.createEntry(entry);
             }
         }
     }
 
     private JournalEntry createJournalEntry() {
-        JournalEntry entry = new JournalEntry(journalEntries.size());
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+        JournalEntry entry = new JournalEntry(JournalEntry.INVALID_ID);
+        /*DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
         Date date = new Date();
-        entry.setDate(dateFormat.format(date));
+        entry.setDate(dateFormat.format(date));*/
         return entry;
     }
 
