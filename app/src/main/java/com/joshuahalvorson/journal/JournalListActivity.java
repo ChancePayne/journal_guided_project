@@ -8,16 +8,16 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 public class JournalListActivity extends AppCompatActivity {
 
@@ -26,7 +26,9 @@ public class JournalListActivity extends AppCompatActivity {
 
     public static int nextId = 0;
 
-    private LinearLayout entryList;
+    private RecyclerView entryRecyclerView;
+
+    private JournalEntryListAdapter journalEntryListAdapter;
 
     private ArrayList<JournalEntry> journalEntries;
 
@@ -45,12 +47,10 @@ public class JournalListActivity extends AppCompatActivity {
         context = this;
         repository = new JournalEntrySharedPrefsRepository(context);
 
-        entryList = findViewById(R.id.entry_list);
+        entryRecyclerView = findViewById(R.id.entry_recycler_view);
 
         journalEntries = repository.readAllEntries();
         //addTestEntries();
-
-
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -77,6 +77,12 @@ public class JournalListActivity extends AppCompatActivity {
                 startActivityForResult(sharePictureIntent, NEW_ENTRY_REQUEST);
             }
         }
+
+        journalEntryListAdapter = new JournalEntryListAdapter(journalEntries);
+        entryRecyclerView.setAdapter(journalEntryListAdapter);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        entryRecyclerView.setLayoutManager(linearLayoutManager);
+
     }
 
     @Override
@@ -84,10 +90,10 @@ public class JournalListActivity extends AppCompatActivity {
         super.onResume();
         Log.i(getLocalClassName(), "onResume");
 
-        entryList.removeAllViews();
+        /*entryRecyclerView.removeAllViews();
         for(JournalEntry journalEntry : journalEntries){
-            entryList.addView(generateTextView(journalEntry));
-        }
+            entryRecyclerView.addView(generateTextView(journalEntry));
+        }*/
     }
 
     @Override
@@ -134,14 +140,17 @@ public class JournalListActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if(requestCode == EDIT_ENTRY_REQUEST_CODE && resultCode == RESULT_OK){
             if(data != null){
+                // TODO: when delete is added, id will no longer work as an index
                 JournalEntry entry = (JournalEntry) data.getSerializableExtra(JournalEntry.TAG);
                 journalEntries.set(entry.getId(), entry);
+                journalEntryListAdapter.notifyItemChanged(entry.getId());
                 repository.updateEntry(entry);
             }
         }else if(requestCode == NEW_ENTRY_REQUEST && resultCode == RESULT_OK) {
             if (data != null) {
                 JournalEntry entry = (JournalEntry) data.getSerializableExtra(JournalEntry.TAG);
                 journalEntries.add(entry);
+                journalEntryListAdapter.notifyItemChanged(journalEntries.size() - 1);
                 repository.createEntry(entry);
             }
         }
