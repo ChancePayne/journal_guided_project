@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -82,6 +83,14 @@ public class JournalListActivity extends AppCompatActivity {
         entryRecyclerView.setAdapter(journalEntryListAdapter);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         entryRecyclerView.setLayoutManager(linearLayoutManager);
+
+        findViewById(R.id.settings_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent settingsIntent = new Intent(context, SettingsActivity.class);
+                startActivity(settingsIntent);
+            }
+        });
 
     }
 
