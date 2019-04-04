@@ -1,5 +1,6 @@
 package com.joshuahalvorson.journal;
 
+import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -22,6 +23,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class JournalListActivity extends AppCompatActivity {
 
@@ -30,6 +32,7 @@ public class JournalListActivity extends AppCompatActivity {
     public static final int NOTIFICATION_ID = 26;
     public static final String NEW_ENTRY_ACTION = "new_entry_action";
     public static final int INPUT_INTENT_REQUEST_CODE = 101;
+    public static final int NOTIFICATION_SCHDULE_REQUEST_CODE = 98;
 
     public static int nextId = 0;
 
@@ -61,6 +64,8 @@ public class JournalListActivity extends AppCompatActivity {
 
         journalEntries = new ArrayList<>();
         //addTestEntries();
+
+        setReminder();
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -101,75 +106,6 @@ public class JournalListActivity extends AppCompatActivity {
                 startActivity(settingsIntent);
             }
         });
-
-        String entryText = processResponse();
-        if(entryText != null){
-            JournalEntry entry = new JournalEntry(JournalEntry.INVALID_ID, entryText);
-            repository.createEntry(entry);
-        }
-
-    }
-
-    private void showNotification(){
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            CharSequence name = "Journal Notification";
-            String description = "Notification for journal entry";
-            int importance = NotificationManager.IMPORTANCE_LOW;
-
-            NotificationChannel notificationChannel = new NotificationChannel(channelId, name, importance);
-            notificationChannel.setDescription(description);
-            notificationManager.createNotificationChannel(notificationChannel);
-        }
-
-        android.support.v4.app.RemoteInput remoteInput = new RemoteInput.Builder(NEW_ENTRY_ACTION)
-                .setLabel("Enter your entry text")
-                .build();
-
-        Intent inputIntent = new Intent(context, JournalListActivity.class);
-        PendingIntent resultPendingIntent = PendingIntent.getActivity
-                (
-                        this,
-                        INPUT_INTENT_REQUEST_CODE,
-                        inputIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-
-        NotificationCompat.Action inputAction = new NotificationCompat.Action.Builder(
-                android.R.drawable.ic_menu_edit, "Entry", resultPendingIntent)
-                .addRemoteInput(remoteInput)
-                .setAllowGeneratedReplies(true)
-                .build();
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
-                .setPriority(NotificationManager.IMPORTANCE_LOW)
-                .setContentTitle("Journal Entry")
-                .setContentText("Create a journal entry")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .addAction(inputAction)
-                .setColor(getResources().getColor(R.color.colorAccentGrey));
-
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
-    }
-
-    private String processResponse(){
-        Bundle input = RemoteInput.getResultsFromIntent(getIntent());
-        if(input != null){
-            String entryText = input.getCharSequence(NEW_ENTRY_ACTION).toString();
-
-            NotificationCompat.Builder successNotification = new NotificationCompat.Builder(
-                    context, channelId)
-                    .setSmallIcon(android.R.drawable.ic_menu_save)
-                    .setContentText("New Entry Created");
-
-            NotificationManager notificationManager = (NotificationManager)
-                    getSystemService(Context.NOTIFICATION_SERVICE);
-
-            notificationManager.notify(NOTIFICATION_ID, successNotification.build());
-
-            return entryText;
-        }
-        return null;
     }
 
     @Override
@@ -180,6 +116,28 @@ public class JournalListActivity extends AppCompatActivity {
         journalEntries.clear();
         journalEntries.addAll(repository.readAllEntries());
         journalEntryListAdapter.notifyDataSetChanged();
+    }
+
+    void setReminder(){
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 10);
+        calendar.set(Calendar.MINUTE, 48);
+
+        PendingIntent notificationScheduleIntent = PendingIntent.getBroadcast(
+                context,
+                NOTIFICATION_SCHDULE_REQUEST_CODE,
+                new Intent(context, NotificationScheduleReceiver.class), 0);
+
+        alarmManager.cancel(notificationScheduleIntent);
+
+        alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.getTimeInMillis(),
+                AlarmManager.INTERVAL_DAY,
+                notificationScheduleIntent
+        );
     }
 
     @Override
@@ -198,7 +156,6 @@ public class JournalListActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         Log.i(getLocalClassName(), "onStop");
-        showNotification();
     }
 
     @Override
