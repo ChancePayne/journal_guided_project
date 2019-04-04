@@ -3,6 +3,9 @@ package com.joshuahalvorson.journal;
 import android.net.Uri;
 
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class JournalEntry implements Serializable {
     public static final String TAG = "journalentry";
@@ -24,7 +27,17 @@ public class JournalEntry implements Serializable {
         this.id = id;
         this.imageUri = "";
         this.entryText = "";
-        this.date = "";
+
+        initializeDate();
+    }
+
+    public JournalEntry(int id, String entryText) {
+        this.id = id;
+        this.entryText = entryText;
+        this.rating = 3;
+        this.imageUri = "";
+
+        initializeDate();
     }
 
     public JournalEntry(String csvString){
@@ -44,6 +57,13 @@ public class JournalEntry implements Serializable {
             this.entryText = values[3].replace("~@", ",");
             this.imageUri = values[4].equals("unused") ? "" : values[4];
         }
+    }
+
+    private void initializeDate() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+        Date date       = new Date();
+
+        this.setDate(dateFormat.format(date));
     }
 
     public String toCsvString(){

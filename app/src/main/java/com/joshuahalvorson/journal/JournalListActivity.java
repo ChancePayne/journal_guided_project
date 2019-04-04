@@ -1,18 +1,21 @@
 package com.joshuahalvorson.journal;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.RemoteInput;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.AppCompatDelegate;
-import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
@@ -24,6 +27,9 @@ public class JournalListActivity extends AppCompatActivity {
 
     public static final int EDIT_ENTRY_REQUEST_CODE = 2;
     public static final int NEW_ENTRY_REQUEST = 1;
+    public static final int NOTIFICATION_ID = 26;
+    public static final String NEW_ENTRY_ACTION = "new_entry_action";
+    public static final int INPUT_INTENT_REQUEST_CODE = 101;
 
     public static int nextId = 0;
 
@@ -35,7 +41,9 @@ public class JournalListActivity extends AppCompatActivity {
 
     private Context context;
 
-    JournalEntrySharedPrefsRepository repository;
+    private JournalEntrySharedPrefsRepository repository;
+
+    public static String channelId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,10 +55,11 @@ public class JournalListActivity extends AppCompatActivity {
 
         context = this;
         repository = new JournalEntrySharedPrefsRepository(context);
+        channelId = getPackageName() + ".notification";
 
         entryRecyclerView = findViewById(R.id.entry_recycler_view);
 
-        journalEntries = repository.readAllEntries();
+        journalEntries = new ArrayList<>();
         //addTestEntries();
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -79,6 +88,7 @@ public class JournalListActivity extends AppCompatActivity {
             }
         }
 
+
         journalEntryListAdapter = new JournalEntryListAdapter(journalEntries);
         entryRecyclerView.setAdapter(journalEntryListAdapter);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
@@ -92,6 +102,74 @@ public class JournalListActivity extends AppCompatActivity {
             }
         });
 
+        String entryText = processResponse();
+        if(entryText != null){
+            JournalEntry entry = new JournalEntry(JournalEntry.INVALID_ID, entryText);
+            repository.createEntry(entry);
+        }
+
+    }
+
+    private void showNotification(){
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            CharSequence name = "Journal Notification";
+            String description = "Notification for journal entry";
+            int importance = NotificationManager.IMPORTANCE_LOW;
+
+            NotificationChannel notificationChannel = new NotificationChannel(channelId, name, importance);
+            notificationChannel.setDescription(description);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }
+
+        android.support.v4.app.RemoteInput remoteInput = new RemoteInput.Builder(NEW_ENTRY_ACTION)
+                .setLabel("Enter your entry text")
+                .build();
+
+        Intent inputIntent = new Intent(context, JournalListActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity
+                (
+                        this,
+                        INPUT_INTENT_REQUEST_CODE,
+                        inputIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
+        NotificationCompat.Action inputAction = new NotificationCompat.Action.Builder(
+                android.R.drawable.ic_menu_edit, "Entry", resultPendingIntent)
+                .addRemoteInput(remoteInput)
+                .setAllowGeneratedReplies(true)
+                .build();
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
+                .setPriority(NotificationManager.IMPORTANCE_LOW)
+                .setContentTitle("Journal Entry")
+                .setContentText("Create a journal entry")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .addAction(inputAction)
+                .setColor(getResources().getColor(R.color.colorAccentGrey));
+
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    private String processResponse(){
+        Bundle input = RemoteInput.getResultsFromIntent(getIntent());
+        if(input != null){
+            String entryText = input.getCharSequence(NEW_ENTRY_ACTION).toString();
+
+            NotificationCompat.Builder successNotification = new NotificationCompat.Builder(
+                    context, channelId)
+                    .setSmallIcon(android.R.drawable.ic_menu_save)
+                    .setContentText("New Entry Created");
+
+            NotificationManager notificationManager = (NotificationManager)
+                    getSystemService(Context.NOTIFICATION_SERVICE);
+
+            notificationManager.notify(NOTIFICATION_ID, successNotification.build());
+
+            return entryText;
+        }
+        return null;
     }
 
     @Override
@@ -99,10 +177,9 @@ public class JournalListActivity extends AppCompatActivity {
         super.onResume();
         Log.i(getLocalClassName(), "onResume");
 
-        /*entryRecyclerView.removeAllViews();
-        for(JournalEntry journalEntry : journalEntries){
-            entryRecyclerView.addView(generateTextView(journalEntry));
-        }*/
+        journalEntries.clear();
+        journalEntries.addAll(repository.readAllEntries());
+        journalEntryListAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -121,6 +198,7 @@ public class JournalListActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         Log.i(getLocalClassName(), "onStop");
+        showNotification();
     }
 
     @Override
